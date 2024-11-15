@@ -5,3 +5,5 @@ LRU_Cache/custom_hashmap/template.txt
 LRU_Cache/other/lru_cache.cpp
 LRU_Cache/.DS_Store
 .DS_Store
+new_lection/.vscode
+new_lection/task.cpp
