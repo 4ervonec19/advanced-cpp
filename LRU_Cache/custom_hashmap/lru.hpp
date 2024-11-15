@@ -2,14 +2,8 @@
 #define LRU_HPP
 
 #include "hashtable.hpp"
-#include <algorithm>
-#include <functional>
 #include <iostream>
 #include <list>
-#include <memory>
-#include <sstream>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 template <typename keyT, typename valueT> class LRU_Cache {
@@ -42,8 +36,8 @@ public:
     } else {
       current_bytes_size -=
           get_note_bytes((*it).second->first, (*it).second->second);
-      cache_list.erase((*it).second);
       cache_unordered_map.erase((*it).second->first);
+      cache_list.erase((*it).second);
     }
 
     cache_list.emplace_front(input_key, input_value);
@@ -57,13 +51,13 @@ public:
     return true;
   }
 
-  void get(const keyT &query_key) {
+  bool get(const keyT &query_key) {
     auto it = cache_unordered_map.find(query_key);
     if (it ==
         cache_unordered_map.end()) // Если ключ не найден, выводим "!NOEMBED!"
     {
       std::cout << "!NOEMBED!" << std::endl;
-      return;
+      return false;
     }
 
     // Перемещаем найденный элемент в начало списка
@@ -73,8 +67,8 @@ public:
     for (const auto &element : (*it).second->second) {
       std::cout << element << " ";
     }
-    // std::cout << get_note_bytes((*it).second->first, (*it).second->second);
     std::cout << std::endl;
+    return true;
   }
 
   void print_cache() const {
@@ -91,17 +85,18 @@ public:
   }
 
 private:
+  // Подсчёт байтов строки в UTF-8
   size_t get_utf8_byte_size(const std::string &str) {
     size_t byte_size = 0;
     for (size_t i = 0; i < str.size(); ++i) {
       unsigned char c = static_cast<unsigned char>(str[i]);
-      if ((c & 0x80) == 0) { // 0xxxxxxx
+      if ((c & 0x80) == 0) { // 1 байт (ASCII)
         byte_size += 1;
-      } else if ((c & 0xE0) == 0xC0) { // 110xxxxx
+      } else if ((c & 0xE0) == 0xC0) { // 2 байта
         byte_size += 2;
-      } else if ((c & 0xF0) == 0xE0) { // 1110xxxx
+      } else if ((c & 0xF0) == 0xE0) { // 3 байта
         byte_size += 3;
-      } else if ((c & 0xF8) == 0xF0) { // 11110xxx
+      } else if ((c & 0xF8) == 0xF0) { // 4 байта
         byte_size += 4;
       }
     }
@@ -113,23 +108,24 @@ private:
   }
 
   bool is_utf8(const std::string &str) {
-    for (size_t i = 0; i < str.size(); ++i) {
-      unsigned char c = static_cast<unsigned char>(str[i]);
-      if (c >= 0x80) {
-        return true; // Наличие символа >= 0x80 указывает на UTF-8
+    for (unsigned char c : str) {
+      if (c & 0x80) { // Если есть байт с установленным 8-м битом, это UTF-8
+        return true;
       }
     }
-    return false; // Все символы <= 0x7F, это CP1251
+    return false;
+  }
+
+  size_t get_string_byte_size(const std::string &str) {
+    if (is_utf8(str)) {
+      return get_utf8_byte_size(str);
+    }
+    return str.size(); // Для CP1251 каждый символ занимает 1 байт
   }
 
   size_t get_note_bytes(const keyT &input_key, const valueT &input_value) {
-    size_t byte_size;
-    if (is_utf8(input_key)) {
-      byte_size = get_utf8_byte_size(input_key);
-    } else {
-      byte_size = get_cp1251_byte_size(input_key);
-    }
-    return byte_size + input_value.size() * sizeof(input_value[0]);
+    return get_string_byte_size(input_key) +
+           input_value.size() * sizeof(input_value[0]);
   }
 
   void delete_last() {

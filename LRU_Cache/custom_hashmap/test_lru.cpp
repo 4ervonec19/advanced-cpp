@@ -4,78 +4,95 @@
 #include <string>
 #include <vector>
 
-// Основная функция для запуска тестов
-int main() {
+// Тестирование LRU-кэша
+void testLRU_Cache() {
 
-  // if (!TestAddAndRetrieve()) return 1;
-  // if (!TestAddBeyondCapacity()) return 1;
-  // if (!TestUpdateEntry()) return 1;
-  // if (!TestMemoryReleaseOnEviction()) return 1;
-
+  // Инициализируем LRU-кэш размера 3 и памяти 1024 байта
   LRU_Cache<std::string, std::vector<float>> cache(3, 1024);
+  // Проверяем размеры (нулевые, ничего не добавляли)
+  assert(cache.size() == 0);
+  assert(cache.size_bytes() == 0);
 
-  // Тест добавления элемента
-  assert(cache.add_note("key1", std::vector<float>(4, 1.0f)));
-  assert(cache.add_note("key1", std::vector<float>(4, 1.25f)));
-  assert(cache.add_note("key2", std::vector<float>(4, 2.0f)));
-  // // Проверка на размер кэша
-  assert(cache.size() == 2);
+  // Проверяем добавление элемента
+  assert(cache.add_note(
+      "key1",
+      std::vector<float>(4, 1.0f))); // Добавляем массив 1.0f по ключу "key1"
+  assert(cache.add_note(
+      "key1", std::vector<float>(4, 1.25f))); // Добавляем массив 1.25f по ключу
+                                              // "key1" (Обновляем по сути)
+  assert(cache.add_note(
+      "key2",
+      std::vector<float>(4, 2.0f))); // Добавляем массив 2.0f по ключу "key2"
+  assert(cache.size() ==
+         2); // Проверяем, что размер кэша остался 2 несмотря на 3 операции
+  assert(cache.size_bytes() ==
+         40); // float = 4 байта (итого: 4*4(размер массива)*2(кол-во записей))
+              // + 4(размер стрингов)*2(кол-во записей)
 
-  // // Проверка кодировки ключа
+  // Проверка кодировки ключа
   assert(cache.add_note("ключ3", std::vector<float>(4, 3.0f)));
   assert(cache.size() == 3);
 
-  // // Добавляем четвертый
-  assert(cache.add_note("key4", std::vector<float>(4, 3.0f)));
-  // // Проверяем удаление первого
-  std::cout << "\nExpected output:\n !NOEMBED! " << std::endl;
-  std::cout << "\nActual output:\n ";
-  cache.get("key1");
-  assert(cache.size() == 3);
-  std::cout << std::endl;
+  // Добавляем четвертый
+  assert(cache.add_note(
+      "key4",
+      std::vector<float>(4, 3.0f))); // Добавляем массив 3.0f по ключу "key4"
+  // Должно произойти удаление первого, как самого старого в кэше
+  assert(!cache.get("key1")); // Должен быть false
+  assert(cache.size() == 3);  // Размер оставлся равный трём
 
-  // // Проверка обновления
-  assert(cache.add_note("key2", std::vector<float>(4, 10.0f)));
-  assert(cache.size() == 3);
+  // Проверка обновления
+  assert(cache.add_note(
+      "key2",
+      std::vector<float>(4, 10.0f))); // Обновляем значение по ключу "key2"
+  assert(cache.size() == 3);          // Размер остался равен 3
+
+  // Проверка get() на true
+  assert(cache.get("ключ3"));
+
+  cache.print_cache();
 
   // // Проверка clear
   cache.clear();
   assert(cache.size() == 0);
+
+  // Обработка 3-x и 4-x байтовых символов:
+  cache.add_note("улыбка 😀", std::vector<float>(4, 10.0f));
+  cache.add_note("Евронский €", std::vector<float>(4, 10.0f));
+
+  std::cout << "All LRU_Cache tests passed successfully!" << std::endl;
+}
+
+void testLRU_CacheMemory() {
+
+  // Инициализируем LRU-кэш размера 3 и памяти 1024 байта
+  LRU_Cache<std::string, std::vector<float>> cache(3, 1024);
+  // Проверяем размеры (нулевые, ничего не добавляли)
+  assert(cache.size() == 0);
+  assert(cache.size_bytes() == 0);
 
   // // Проверка на работу с памятью
   assert(cache.add_note("test1", std::vector<float>(64, 15.0f)));
   assert(cache.add_note("test2", std::vector<float>(64, 20.0f)));
   assert(cache.add_note("test3", std::vector<float>(64, 25.0f)));
 
+  // Размер должен стать 3
   assert(cache.size() == 3);
-  size_t initial_size_bytes = cache.size_bytes();
 
   // // Добавляем четвертый элемент, который должен вызвать удаление "test1"
   assert(cache.add_note("test4", std::vector<float>(64, 30.0f)));
-
-  // // Ожидается !NOEMBED! для теста 1
-  std::cout << "\nExpected output for key1:\n !NOEMBED! " << std::endl;
-  std::cout << "\nActual output:\n ";
-  cache.get("key1");
-  std::cout << std::endl;
-  assert(cache.size() == 3); // Проверяем, что размер кэша остался 3
-
   assert(cache.size_bytes() ==
          783); // Проверяем, что общий размер в байтах не увеличился
-
-  cache.clear();
-  assert(cache.size() == 0);
-
-  assert(cache.add_note("test1", std::vector<float>(4, 15.0f)));
-  assert(cache.add_note("test2", std::vector<float>(4, 20.0f)));
-  assert(cache.add_note("test3", std::vector<float>(4, 25.0f)));
 
   // Проверка на добавление изначально бОльшей, чем размер записи
   assert(!cache.add_note("aaaaaaaaaa", std::vector<float>(256, 30.0f)));
   assert(cache.size() == 3);
+  std::cout << "All LRU_Cache Memory tests passed successfully!" << std::endl;
+}
 
-  cache.print_cache();
-
-  std::cout << "All tests passed successfully!" << std::endl;
+// Основная функция для запуска тестов
+int main() {
+  testLRU_Cache();
+  testLRU_CacheMemory();
   return 0;
 }
