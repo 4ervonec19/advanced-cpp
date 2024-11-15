@@ -90,9 +90,32 @@ void testLRU_CacheMemory() {
   std::cout << "All LRU_Cache Memory tests passed successfully!" << std::endl;
 }
 
+// Для покрытия тестируем хэш-таблицу
+void testHashTable() {
+
+  // Инициализиурем с размером 4
+  LRU_Cache<std::string, std::vector<float>> cache(8, 8192);
+  // Проверяем размеры (нулевые, ничего не добавляли)
+  assert(cache.size() == 0);
+  assert(cache.size_bytes() == 0);
+
+  // Должен сработать rehash() внутри hashtable
+  assert(cache.add_note("test1", std::vector<float>(64, 15.0f)));
+  assert(cache.add_note("test2", std::vector<float>(64, 20.0f)));
+  assert(cache.add_note("test3", std::vector<float>(64, 25.0f)));
+  assert(cache.add_note("test4", std::vector<float>(64, 35.0f)));
+  assert(cache.add_note("test5", std::vector<float>(64, 45.0f)));
+  assert(cache.add_note("test6", std::vector<float>(64, 55.0f)));
+  assert(cache.add_note("test7", std::vector<float>(64, 65.0f)));
+  assert(cache.add_note("test8", std::vector<float>(64, 75.0f)));
+
+  std::cout << "All HashTable tests passed successfully" << std::endl;
+}
+
 // Основная функция для запуска тестов
 int main() {
   testLRU_Cache();
   testLRU_CacheMemory();
+  testHashTable();
   return 0;
 }
