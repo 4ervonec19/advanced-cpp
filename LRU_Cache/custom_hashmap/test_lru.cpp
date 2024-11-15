@@ -108,6 +108,8 @@ void testHashTable() {
   assert(cache.add_note("test6", std::vector<float>(64, 55.0f)));
   assert(cache.add_note("test7", std::vector<float>(64, 65.0f)));
   assert(cache.add_note("test8", std::vector<float>(64, 75.0f)));
+  // assert(cache.get("test5"));
+  // cache.print_cache();
 
   std::cout << "All HashTable tests passed successfully" << std::endl;
 }
