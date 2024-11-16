@@ -26,7 +26,7 @@ int main() {
     // Проверка, является ли запрос обновлением (тип a)
     if (iss >> std::ws) // Если следующий элемент не пробел
     {
-      std::vector<float> embedding(4);
+      std::vector<float> embedding(64);
       bool hasError = false; // Флаг для отслеживания ошибок
       size_t count = 0;      // Счётчик успешно считанных значений
 
@@ -59,6 +59,5 @@ int main() {
       lru_cache.get(query);
     }
   }
-
   return 0;
 }
