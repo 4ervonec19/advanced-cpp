@@ -1,0 +1,301 @@
+Заметки
+
+Файл, чтобы вводить команды
+
+g++ -std=c++20 -O2 -fsanitize=address \
+    -Wall -Werror -Wextra \
+    -I ./units/ main.cpp \
+    units/crew_members.cpp  units/passengers.cpp \                
+    -o main
+
+g++ -std=c++20 -O2 -fsanitize=address \
+    -Wall -Werror -Wextra \
+    -I ./units/ main.cpp \
+    units/crew_members.cpp \
+    -o main
+
+g++ --coverage -g -O0 -fsanitize=address -std=c++20 \
+    -Wall -Werror -Wextra units/segments.cpp \
+    tests/test_segments.cpp -o \
+    test_segments
+
+
+find ./ -iname "*.cpp" -o -iname "*.hpp" | xargs clang-format -i -style=file --dry-run --Werror
+
+find . -type f \( -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" \) -exec rm -f {} +
+
+g++ --coverage -g -O0 -fsanitize=address -std=c++20 \
+    -Wall -Werror -Wextra tests/plane.cpp -o \
+    test_plane
+
+g++ --coverage -g -O0 -fsanitize=address -std=c++20 \
+    -Wall -Werror -Wextra tests/passengers.cpp -o \
+    test_passengers
+
+g++ --coverage -g -O0 -fsanitize=address -std=c++20 \
+    -Wall -Werror -Wextra tests/crew_members.cpp -o \
+    test_crew_members
+
+g++ --coverage -g -O0 -fsanitize=address -std=c++20 \
+-Wall -Werror -Wextra tests/segments.cpp -o \
+test_segments
+
+g++ -std=c++20 -O2 -fsanitize=address \
+    -Wall -Werror -Wextra main.cpp -o main
+
+
+clang-format --dry-run --Werror --style=file *.cpp *.hpp
+
+clang-format -i --style=file *.cpp *.hpp
+
+gcov -o .
+
+
+// Сохраненная версия тестов (Неверная)
+
+#include "../units/plane.hpp"
+#include <cassert>
+#include <memory>
+#include <iostream>
+
+void testPlane() {
+  // Инициализация самолёта с лимитами
+  Plane plane(100, 60,
+              10); // ECONOMY: 100 кг, BUSINESS: 60 кг, FIRST_CLASS: 10 кг
+
+  // Tест 0: Проверка максимального веса в сегментах
+  assert(plane.getMaxWeightEconomyInfo() == 100);
+  assert(plane.getMaxWeightBusinessInfo() == 60);
+  assert(plane.getMaxWeightFirstClassInfo() == 10);
+
+  find . -type f \( -name "*.cpp" -o -name "*.hpp" \) -exec clang-format -i --style=file {} +
+
+
+  // Тест 1: Проверка добавления пассажира эконом-класса
+  std::unique_ptr<EconomyPassenger> econPassenger = std::make_unique<EconomyPassenger>(
+    std::vector<int>{5}, 
+    std::vector<int>{20});
+  plane.registerUnit(std::move(econPassenger));
+  assert(plane.getWeightEconomyInfo() == 25);
+  assert(plane.getWeightBusinessInfo() == 0);
+  assert(plane.getWeightFirstClassInfo() == 0);
+  std::cout << "Test 1 passed.\n";
+
+  // Тест 2: Ошибка при добавлении ещё одного пассажира с превышением лимита
+  auto econPassengerFail = std::make_unique<EconomyPassenger>(
+    std::vector<int>{5}, std::vector<int>{25});
+  plane.registerUnit(std::move(econPassengerFail));
+  assert(plane.getWeightEconomyInfo() == 25);
+  std::cout << "Test 2 passed.\n";
+
+  // Тест 3: Добавление ещё одного пассажира эконом-класса
+  auto econPassengerNew = std::make_unique<EconomyPassenger>(
+    std::vector<int>{6}, std::vector<int>{17});
+  plane.registerUnit(std::move(econPassengerNew));
+  assert(plane.getWeightEconomyInfo() == 48);
+  std::cout << "Test 3 passed.\n";
+
+  // Тест 4: Добавление пассажира бизнес-класса
+  auto busPassenger = std::make_unique<BusinessPassenger>(
+    std::vector<int>{10, 5}, std::vector<int>{20, 19});
+  plane.registerUnit(std::move(busPassenger));
+  assert(plane.getWeightEconomyInfo() == 48);
+  assert(plane.getWeightBusinessInfo() == 54);
+  assert(plane.getWeightInfo() == 102);
+  std::cout << "Test 4 passed.\n";
+
+  // Тест 5: Ещё один бизнес-пассажир
+  auto busPassengerNew = std::make_unique<BusinessPassenger>(
+    std::vector<int>{5}, std::vector<int>{1, 15});
+  plane.registerUnit(std::move(busPassengerNew));
+  assert(plane.getWeightEconomyInfo() == 63);
+  assert(plane.getWeightBusinessInfo() == 60);
+  assert(plane.getWeightInfo() == 123);
+  std::cout << "Test 5 passed.\n";
+
+  // Тест 6: Ещё один пассажир эконом-класса
+  EconomyPassenger *econPassenger_ = new EconomyPassenger({10}, {24});
+  plane.registerUnit(econPassenger_);
+  assert(plane.getWeightEconomyInfo() == 97);
+  assert(plane.getWeightInfo() == 157);
+  std::cout << "Test 6 passed.\n";
+
+  // Тест 7: Бизнес-пассажир с превышением лимита
+  BusinessPassenger *busPassenger_ = new BusinessPassenger({0}, {20, 19});
+  plane.registerUnit(busPassenger_);
+  assert(plane.getWeightEconomyInfo() == 92); // 97 - 20 - 24 + 39
+  assert(plane.getWeightInfo() == 152);
+  std::cout << "Test 7 passed.\n";
+
+  // Тест 8: Ошибка при добавлении бизнес-пассажира с превышением лимита
+  BusinessPassenger *busPassengerFail =
+      new BusinessPassenger({10, 10, 3}, {20, 5, 10});
+  plane.registerUnit(busPassengerFail); // Не должен добавиться
+  assert(plane.getWeightEconomyInfo() == 92);
+  assert(plane.getWeightBusinessInfo() == 60);
+  std::cout << "Test 8 passed.\n";
+
+  // Тест 9: Ошибка при добавлении пассажира первого класса
+  FirstClassPassenger *firstPassengerFail =
+      new FirstClassPassenger({70}, {20, 100});
+  plane.registerUnit(firstPassengerFail);
+  assert(plane.getWeightFirstClassInfo() == 0);
+  std::cout << "Test 9 passed.\n";
+
+  // Тест 10: Успешное добавление пассажира первого класса
+  FirstClassPassenger *firstPassengerNew_ =
+      new FirstClassPassenger({2, 2}, {2, 2});
+  plane.registerUnit(firstPassengerNew_);
+  assert(plane.getWeightFirstClassInfo() == 8);
+  std::cout << "Test 10 passed.\n";
+
+  // Тест 11: Добавление пассажира первого класса с нулевыми весами
+  FirstClassPassenger *firstPassengerNewFin =
+      new FirstClassPassenger({0, 60}, {0, 0});
+  plane.registerUnit(firstPassengerNewFin);
+  assert(plane.getWeightFirstClassInfo() == 8);
+  assert(plane.getWeightEconomyInfo() == 92);
+  std::cout << "Test 11 passed.\n";
+
+  FirstClassPassenger *firstPassengerNewDel =
+      new FirstClassPassenger({0, 0}, {60, 0});
+
+  // Тест 12: Даже удаляя, не разместим первого класса
+  plane.registerUnit(firstPassengerNewDel);
+  std::cout << "Test 12 passed.\n";
+
+  // Тест 13: Не можем добавить в эконом
+  EconomyPassenger *econPassengerFailNew = new EconomyPassenger({5}, {5});
+  plane.registerUnit(econPassengerFailNew);
+  assert(plane.getWeightEconomyInfo() == 92);
+  std::cout << "Test 13 passed.\n";
+
+  // Тест 14: Первый багаж добавится в первый класс, второй нет (для первого
+  // класса)
+  FirstClassPassenger *firstPassengerAdd =
+      new FirstClassPassenger({0, 0}, {1, 3});
+  plane.registerUnit(firstPassengerAdd);
+  assert(plane.getWeightEconomyInfo() == 95);
+  assert(plane.getWeightFirstClassInfo() == 9);
+  std::cout << "Test 14 passed.\n";
+
+  // Тест 15: Второй багаж добавится в первый класс, первый нет (для первого
+  // класса)
+  FirstClassPassenger *firstPassengerAdd_ =
+      new FirstClassPassenger({0, 0}, {3, 1});
+  plane.registerUnit(firstPassengerAdd_);
+  assert(plane.getWeightEconomyInfo() == 98);
+  assert(plane.getWeightFirstClassInfo() == 10);
+  assert(plane.getWeightBusinessInfo() == 60);
+  std::cout << "Test 15 passed.\n";
+
+  {
+    Plane plane(10, 5,
+                10); // ECONOMY: 10 кг, BUSINESS: 5 кг, FIRST_CLASS: 10 кг
+    // Тест 16: Оба по одиночке можем разместить (для первого класса)
+    FirstClassPassenger *firstPassengerAdd__ =
+        new FirstClassPassenger({0, 0}, {5, 6});
+    plane.registerUnit(firstPassengerAdd__);
+    assert(plane.getWeightEconomyInfo() == 5);
+    assert(plane.getWeightFirstClassInfo() == 6);
+    assert(plane.getWeightBusinessInfo() == 0);
+    std::cout << "Test 16 passed.\n";
+
+    // Дополнительно для покрытия passenger.hpp
+    EconomyPassenger *econPassenger = new EconomyPassenger({5, 6}, {20});
+    plane.registerUnit(econPassenger);
+
+    EconomyPassenger *econPassenger_ = new EconomyPassenger({5}, {10, 10});
+    plane.registerUnit(econPassenger_);
+
+    EconomyPassenger *econPassengerNew = new EconomyPassenger({12}, {10});
+    plane.registerUnit(econPassengerNew);
+
+    BusinessPassenger *busPassenger_ =
+        new BusinessPassenger({15, 15}, {20, 19});
+    plane.registerUnit(busPassenger_);
+
+    BusinessPassenger *busPassenger__ =
+        new BusinessPassenger({10, 10}, {20, 21});
+    plane.registerUnit(busPassenger__);
+
+    BusinessPassenger *busPassenger1 =
+        new BusinessPassenger({10, 10}, {19, 20, 1});
+    plane.registerUnit(busPassenger1);
+  }
+}
+
+int main() {
+  testPlane();
+  std::cout << "All tests passed successfully.\n";
+  return 0;
+}
+
+ECONOMY_CLASS_SEGMENT 100
+BUSINESS_CLASS_SEGMENT 60
+FIRST_CLASS_SEGMENT 10
+PILOT 0 0 
+PILOT 0 0
+FLIGHT_ATTENDANT 0 0  
+FLIGHT_ATTENDANT 0 0  
+FLIGHT_ATTENDANT 0 0  
+FLIGHT_ATTENDANT 0 0  
+FLIGHT_ATTENDANT 0 0  
+FLIGHT_ATTENDANT 0 0  
+ECONOMY 5 20
+ECONOMY 5 25
+!!CANT REGISTER ECONOMY PASSENGER, ID = 1!!
+ECONOMY 6 17
+BUSINESS 10 5 20 19
+BUSINESS 0 5 1 15
+ECONOMY 10 24
+BUSINESS 0 0 20 19
+!!PASSENGER'S LUGGAGE REMOVED FROM ECONOMY, ID = 5!!
+!!PASSENGER'S LUGGAGE REMOVED FROM ECONOMY, ID = 0!!
+BUSINESS 10 10 3 20 5 10
+!!CANT REGISTER BUSINESS PASSENGER, ID = 7!!
+FIRST_CLASS 0 70 20 100
+!!CANT REGISTER FIRST_CLASS PASSENGER, ID = 8!!
+FIRST_CLASS 2 2 2 2
+FIRST_CLASS 0 60 0 0
+!!CANT REGISTER FIRST_CLASS PASSENGER, ID = 10!!
+FIRST_CLASS 0 0 60 0
+!!CANNOT ADD LUGGAGE OF PASSENGER ID = 11!!
+ECONOMY 5 5
+!!CANT REGISTER ECONOMY PASSENGER, ID = 12!!
+FIRST_CLASS 0 0 1 3
+FIRST_CLASS 0 0 3 1
+exit
+All inputs processed!
+
+
+
+!!CANT REGISTER ECONOMY PASSENGER, ID = 1!!
+Test 2 passed.
+Test 3 passed.
+Test 4 passed.
+Test 5 passed.
+Test 6 passed.
+!!PASSENGER'S LUGGAGE REMOVED FROM ECONOMY, ID = 5!!
+!!PASSENGER'S LUGGAGE REMOVED FROM ECONOMY, ID = 0!!
+Test 7 passed.
+!!CANT REGISTER BUSINESS PASSENGER, ID = 7!!
+Test 8 passed.
+!!CANT REGISTER FIRST_CLASS PASSENGER, ID = 8!!
+Test 9 passed.
+Test 10 passed.
+!!CANT REGISTER FIRST_CLASS PASSENGER, ID = 10!!
+Test 11 passed.
+!!CANNOT ADD LUGGAGE OF PASSENGER ID = 11!!
+Test 12 passed.
+!!CANT REGISTER ECONOMY PASSENGER, ID = 12!!
+Test 13 passed.
+Test 14 passed.
+Test 15 passed.
+Test 16 passed.
+!!CANT REGISTER ECONOMY PASSENGER, ID = 16!!
+!!CANT REGISTER ECONOMY PASSENGER, ID = 17!!
+!!CANT REGISTER ECONOMY PASSENGER, ID = 18!!
+!!CANT REGISTER BUSINESS PASSENGER, ID = 19!!
+!!CANT REGISTER BUSINESS PASSENGER, ID = 20!!
+!!CANT REGISTER BUSINESS PASSENGER, ID = 21!!
